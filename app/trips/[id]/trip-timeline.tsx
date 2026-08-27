@@ -2,9 +2,10 @@
 
 import { useEffect, useState } from "react";
 import {
+  Bar,
   CartesianGrid,
+  ComposedChart,
   Line,
-  LineChart,
   XAxis,
   YAxis,
   type DotItemDotProps,
@@ -61,6 +62,7 @@ function formatHour(time: string): string {
 const chartConfig: ChartConfig = {
   tempMax: { label: "최고기온", color: "var(--chart-1)" },
   tempMin: { label: "최저기온", color: "var(--chart-2)" },
+  precipitationSum: { label: "강수량", color: "var(--chart-3)" },
 };
 
 // 값이 없는 날짜(예보 범위 밖 등)는 라인에 점이 그려지지 않으므로, X축 날짜
@@ -191,6 +193,8 @@ export function TripTimeline({ dateGroups }: { dateGroups: DateGroup[] }) {
       label: formatShortDate(group.date),
       tempMax: weather?.tempMax ?? null,
       tempMin: weather?.tempMin ?? null,
+      precipitationSum: weather?.precipitationSum ?? null,
+      precipitationProbability: weather?.precipitationProbability ?? null,
     };
   });
 
@@ -207,11 +211,11 @@ export function TripTimeline({ dateGroups }: { dateGroups: DateGroup[] }) {
     <div className="flex flex-col gap-4">
       <Card>
         <CardHeader>
-          <CardTitle>전체 기간 기온 추이</CardTitle>
+          <CardTitle>전체 기간 기온·강수 추이</CardTitle>
         </CardHeader>
         <CardContent>
           <ChartContainer config={chartConfig} className="w-full">
-            <LineChart data={chartData} margin={{ bottom: 8 }}>
+            <ComposedChart data={chartData} margin={{ bottom: 8 }}>
               <CartesianGrid vertical={false} />
               <XAxis
                 dataKey="date"
@@ -225,12 +229,29 @@ export function TripTimeline({ dateGroups }: { dateGroups: DateGroup[] }) {
                 )}
               />
               <YAxis
+                yAxisId="temp"
                 width={32}
                 tickFormatter={(v) => `${v}°`}
                 domain={["auto", "auto"]}
               />
+              <YAxis
+                yAxisId="precipitation"
+                orientation="right"
+                width={40}
+                tickFormatter={(v) => `${v}mm`}
+                domain={[0, "auto"]}
+              />
               <ChartTooltip content={<ChartTooltipContent />} />
+              <Bar
+                yAxisId="precipitation"
+                dataKey="precipitationSum"
+                fill="var(--color-precipitationSum)"
+                fillOpacity={0.35}
+                radius={[4, 4, 0, 0]}
+                barSize={16}
+              />
               <Line
+                yAxisId="temp"
                 dataKey="tempMax"
                 stroke="var(--color-tempMax)"
                 strokeWidth={2}
@@ -259,6 +280,7 @@ export function TripTimeline({ dateGroups }: { dateGroups: DateGroup[] }) {
                 }}
               />
               <Line
+                yAxisId="temp"
                 dataKey="tempMin"
                 stroke="var(--color-tempMin)"
                 strokeWidth={2}
@@ -286,10 +308,11 @@ export function TripTimeline({ dateGroups }: { dateGroups: DateGroup[] }) {
                   );
                 }}
               />
-            </LineChart>
+            </ComposedChart>
           </ChartContainer>
           <p className="mt-2 text-xs text-muted-foreground">
-            그래프의 날짜를 클릭하면 아래에서 그날의 날씨를 볼 수 있습니다.
+            실선은 기온(왼쪽 축), 막대는 강수량(오른쪽 축, mm)입니다. 그래프의
+            날짜를 클릭하면 아래에서 그날의 날씨를 볼 수 있습니다.
           </p>
         </CardContent>
       </Card>
