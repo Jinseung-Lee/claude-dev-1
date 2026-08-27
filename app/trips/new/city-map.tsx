@@ -1,10 +1,10 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect } from "react";
 import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
-import { searchCities, type CitySearchResult } from "@/lib/weather";
+import type { CitySearchResult } from "@/lib/weather";
 
 export type MapCity = {
   cityName: string;
@@ -43,31 +43,13 @@ function FitToConfirmedCities({ cities }: { cities: MapCity[] }) {
 
 export function CityMap({
   cities,
-  activeQuery,
+  candidates,
   onSelectCity,
 }: {
   cities: MapCity[];
-  activeQuery: string;
+  candidates: CitySearchResult[];
   onSelectCity: (city: CitySearchResult) => void;
 }) {
-  const [candidates, setCandidates] = useState<CitySearchResult[]>([]);
-  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  useEffect(() => {
-    if (debounceRef.current) clearTimeout(debounceRef.current);
-    if (!activeQuery.trim()) {
-      setCandidates([]);
-      return;
-    }
-    debounceRef.current = setTimeout(async () => {
-      const results = await searchCities(activeQuery, 5);
-      setCandidates(results);
-    }, 400);
-    return () => {
-      if (debounceRef.current) clearTimeout(debounceRef.current);
-    };
-  }, [activeQuery]);
-
   const confirmed = cities.filter(
     (c) => c.latitude != null && c.longitude != null
   );

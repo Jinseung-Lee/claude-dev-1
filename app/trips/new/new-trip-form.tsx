@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
 import type { CitySearchResult } from "@/lib/weather";
+import { useCitySearch } from "@/app/trips/new/use-city-search";
 
 // Leaflet은 window가 필요해 서버에서 렌더링하면 오류가 나므로 클라이언트
 // 전용으로만 로드한다.
@@ -31,6 +32,7 @@ export function NewTripForm() {
   const [activeIndex, setActiveIndex] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
+  const candidates = useCitySearch(cities[activeIndex]?.cityName ?? "");
 
   function updateCity(index: number, patch: Partial<NewTripCity>) {
     setCities((prev) =>
@@ -72,13 +74,14 @@ export function NewTripForm() {
 
       <CityMap
         cities={cities}
-        activeQuery={cities[activeIndex]?.cityName ?? ""}
+        candidates={candidates}
         onSelectCity={handleMapSelect}
       />
       <p className="text-xs text-muted-foreground">
         지도에서 도시를 검색하려면 아래에서 편집할 도시 칸을 먼저
-        클릭하세요. 도시 이름을 입력하면 후보가 지도에 파란 점으로 뜨고,
-        클릭하면 그 도시로 확정됩니다(초록 점).
+        클릭하세요. 도시 이름을 입력하면 후보가 지도에 파란 점으로,
+        입력칸 아래 목록으로도 뜹니다. 마커나 목록 중 아무거나 클릭하면
+        그 도시로 확정됩니다(초록 점).
       </p>
 
       <div className="flex flex-col gap-4">
@@ -100,12 +103,13 @@ export function NewTripForm() {
                   </Button>
                 )}
               </div>
-              <div className="flex flex-col gap-2">
+              <div className="relative flex flex-col gap-2">
                 <Label htmlFor={`city-${index}`}>도시</Label>
                 <Input
                   id={`city-${index}`}
                   value={city.cityName}
                   placeholder="예: 도쿄"
+                  autoComplete="off"
                   onFocus={() => setActiveIndex(index)}
                   onChange={(e) =>
                     updateCity(index, {
@@ -118,6 +122,33 @@ export function NewTripForm() {
                     })
                   }
                 />
+                {activeIndex === index && candidates.length > 0 && (
+                  <ul className="absolute top-full left-0 z-10 mt-1 w-full overflow-hidden rounded-2xl bg-popover shadow-lg ring-1 ring-foreground/5">
+                    {candidates.map((c, i) => (
+                      <li key={`${c.name}-${i}`}>
+                        <button
+                          type="button"
+                          className="flex w-full items-center justify-between px-3 py-2 text-left text-sm hover:bg-muted"
+                          onMouseDown={(e) => e.preventDefault()}
+                          onClick={() => {
+                            updateCity(index, {
+                              cityName: c.name,
+                              latitude: c.latitude,
+                              longitude: c.longitude,
+                            });
+                          }}
+                        >
+                          <span>{c.name}</span>
+                          {c.country && (
+                            <span className="text-xs text-muted-foreground">
+                              {c.country}
+                            </span>
+                          )}
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div className="flex flex-col gap-2">
