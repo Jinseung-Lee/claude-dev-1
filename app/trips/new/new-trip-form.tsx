@@ -35,6 +35,8 @@ export function NewTripForm() {
   // 방금 확정했다"를 따로 표시해 드롭다운을 닫아 준다. 다시 입력하면
   // (onChange) 풀린다.
   const [dismissedIndex, setDismissedIndex] = useState<number | null>(null);
+  // 드롭다운에서 방향키로 훑고 있는 후보의 위치.
+  const [highlightedIndex, setHighlightedIndex] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   const candidates = useCitySearch(cities[activeIndex]?.cityName ?? "");
@@ -55,13 +57,17 @@ export function NewTripForm() {
     setActiveIndex((prev) => Math.max(0, Math.min(prev, cities.length - 2)));
   }
 
-  function handleMapSelect(city: CitySearchResult) {
-    updateCity(activeIndex, {
-      cityName: city.name,
-      latitude: city.latitude,
-      longitude: city.longitude,
+  function selectCandidate(index: number, c: CitySearchResult) {
+    updateCity(index, {
+      cityName: c.name,
+      latitude: c.latitude,
+      longitude: c.longitude,
     });
-    setDismissedIndex(activeIndex);
+    setDismissedIndex(index);
+  }
+
+  function handleMapSelect(city: CitySearchResult) {
+    selectCandidate(activeIndex, city);
   }
 
   function handleSubmit() {
@@ -116,6 +122,12 @@ export function NewTripForm() {
                   value={city.cityName}
                   placeholder="예: 도쿄"
                   autoComplete="off"
+                  role="combobox"
+                  aria-expanded={
+                    activeIndex === index &&
+                    dismissedIndex !== index &&
+                    city.cityName.trim().length > 0
+                  }
                   onFocus={() => setActiveIndex(index)}
                   onChange={(e) => {
                     updateCity(index, {
@@ -127,6 +139,35 @@ export function NewTripForm() {
                       longitude: null,
                     });
                     setDismissedIndex(null);
+                    setHighlightedIndex(0);
+                  }}
+                  onKeyDown={(e) => {
+                    const isOpen =
+                      activeIndex === index &&
+                      dismissedIndex !== index &&
+                      city.cityName.trim().length > 0 &&
+                      candidates.length > 0;
+                    if (!isOpen) return;
+                    if (e.key === "ArrowDown") {
+                      e.preventDefault();
+                      setHighlightedIndex(
+                        (prev) => (prev + 1) % candidates.length
+                      );
+                    } else if (e.key === "ArrowUp") {
+                      e.preventDefault();
+                      setHighlightedIndex(
+                        (prev) =>
+                          (prev - 1 + candidates.length) % candidates.length
+                      );
+                    } else if (e.key === "Enter") {
+                      const c = candidates[highlightedIndex];
+                      if (c) {
+                        e.preventDefault();
+                        selectCandidate(index, c);
+                      }
+                    } else if (e.key === "Escape") {
+                      setDismissedIndex(index);
+                    }
                   }}
                 />
                 {activeIndex === index &&
@@ -138,16 +179,12 @@ export function NewTripForm() {
                           <li key={`${c.name}-${i}`}>
                             <button
                               type="button"
-                              className="flex w-full items-center justify-between px-3 py-2 text-left text-sm hover:bg-muted"
+                              className={`flex w-full items-center justify-between px-3 py-2 text-left text-sm hover:bg-muted ${
+                                i === highlightedIndex ? "bg-muted" : ""
+                              }`}
                               onMouseDown={(e) => e.preventDefault()}
-                              onClick={() => {
-                                updateCity(index, {
-                                  cityName: c.name,
-                                  latitude: c.latitude,
-                                  longitude: c.longitude,
-                                });
-                                setDismissedIndex(index);
-                              }}
+                              onMouseEnter={() => setHighlightedIndex(i)}
+                              onClick={() => selectCandidate(index, c)}
                             >
                               <span>{c.name}</span>
                               {c.country && (
