@@ -30,6 +30,11 @@ function emptyCity(): NewTripCity {
 export function NewTripForm() {
   const [cities, setCities] = useState<NewTripCity[]>([emptyCity()]);
   const [activeIndex, setActiveIndex] = useState(0);
+  // 후보를 클릭해 도시를 확정한 직후에는, 입력값이 후보 이름과 같아져
+  // 검색어가 안 바뀌므로 후보 목록이 그대로 남는다. 그래서 "이 인덱스는
+  // 방금 확정했다"를 따로 표시해 드롭다운을 닫아 준다. 다시 입력하면
+  // (onChange) 풀린다.
+  const [dismissedIndex, setDismissedIndex] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   const candidates = useCitySearch(cities[activeIndex]?.cityName ?? "");
@@ -56,6 +61,7 @@ export function NewTripForm() {
       latitude: city.latitude,
       longitude: city.longitude,
     });
+    setDismissedIndex(activeIndex);
   }
 
   function handleSubmit() {
@@ -111,7 +117,7 @@ export function NewTripForm() {
                   placeholder="예: 도쿄"
                   autoComplete="off"
                   onFocus={() => setActiveIndex(index)}
-                  onChange={(e) =>
+                  onChange={(e) => {
                     updateCity(index, {
                       cityName: e.target.value,
                       // 텍스트를 직접 고치면 지도에서 확정했던 좌표는
@@ -119,36 +125,47 @@ export function NewTripForm() {
                       // 다시 지오코딩한다.
                       latitude: null,
                       longitude: null,
-                    })
-                  }
+                    });
+                    setDismissedIndex(null);
+                  }}
                 />
-                {activeIndex === index && candidates.length > 0 && (
-                  <ul className="absolute top-full left-0 z-10 mt-1 w-full overflow-hidden rounded-2xl bg-popover shadow-lg ring-1 ring-foreground/5">
-                    {candidates.map((c, i) => (
-                      <li key={`${c.name}-${i}`}>
-                        <button
-                          type="button"
-                          className="flex w-full items-center justify-between px-3 py-2 text-left text-sm hover:bg-muted"
-                          onMouseDown={(e) => e.preventDefault()}
-                          onClick={() => {
-                            updateCity(index, {
-                              cityName: c.name,
-                              latitude: c.latitude,
-                              longitude: c.longitude,
-                            });
-                          }}
-                        >
-                          <span>{c.name}</span>
-                          {c.country && (
-                            <span className="text-xs text-muted-foreground">
-                              {c.country}
-                            </span>
-                          )}
-                        </button>
-                      </li>
-                    ))}
-                  </ul>
-                )}
+                {activeIndex === index &&
+                  dismissedIndex !== index &&
+                  city.cityName.trim().length > 0 && (
+                    <ul className="absolute top-full left-0 z-10 mt-1 w-full overflow-hidden rounded-2xl bg-popover shadow-lg ring-1 ring-foreground/5">
+                      {candidates.length > 0 ? (
+                        candidates.map((c, i) => (
+                          <li key={`${c.name}-${i}`}>
+                            <button
+                              type="button"
+                              className="flex w-full items-center justify-between px-3 py-2 text-left text-sm hover:bg-muted"
+                              onMouseDown={(e) => e.preventDefault()}
+                              onClick={() => {
+                                updateCity(index, {
+                                  cityName: c.name,
+                                  latitude: c.latitude,
+                                  longitude: c.longitude,
+                                });
+                                setDismissedIndex(index);
+                              }}
+                            >
+                              <span>{c.name}</span>
+                              {c.country && (
+                                <span className="text-xs text-muted-foreground">
+                                  {c.country}
+                                </span>
+                              )}
+                            </button>
+                          </li>
+                        ))
+                      ) : (
+                        <li className="px-3 py-2 text-sm text-muted-foreground">
+                          검색 결과가 없습니다. 정식 명칭이나 3글자 이상으로
+                          입력해보세요(예: 서울 → 서울특별시).
+                        </li>
+                      )}
+                    </ul>
+                  )}
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div className="flex flex-col gap-2">
