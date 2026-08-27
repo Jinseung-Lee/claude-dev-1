@@ -2,6 +2,7 @@ import Link from "next/link";
 import { listMyTrips, type TripSummaryCity } from "@/lib/trips";
 import { buttonVariants } from "@/components/ui/button";
 import { TripsMapLoader } from "@/app/trips/trips-map-loader";
+import { colorForTrip, opacityForStartDate } from "@/lib/trip-style";
 import {
   Card,
   CardHeader,
@@ -16,11 +17,15 @@ function formatDate(date: string): string {
   });
 }
 
-function tripRange(cities: TripSummaryCity[]): string {
-  const start = cities.reduce(
+function earliestStart(cities: TripSummaryCity[]): string {
+  return cities.reduce(
     (min, c) => (c.startDate < min ? c.startDate : min),
     cities[0].startDate
   );
+}
+
+function tripRange(cities: TripSummaryCity[]): string {
+  const start = earliestStart(cities);
   const end = cities.reduce(
     (max, c) => (c.endDate > max ? c.endDate : max),
     cities[0].endDate
@@ -44,8 +49,9 @@ export default async function TripsPage() {
         <div className="flex flex-col gap-2">
           <TripsMapLoader trips={trips} />
           <p className="text-xs text-muted-foreground">
-            같은 도시는 같은 색으로, 오래된 여행일수록 옅은 색으로
-            표시됩니다. 아직 오지 않은(예정) 여행은 점선으로 표시됩니다.
+            여행마다 고유한 색으로 표시되며, 카드 목록의 색과 지도의 색이
+            같은 여행을 가리킵니다. 오래된 여행일수록 옅은 색으로, 아직
+            오지 않은(예정) 여행은 점선으로 표시됩니다.
           </p>
         </div>
       )}
@@ -62,39 +68,51 @@ export default async function TripsPage() {
         </Card>
       ) : (
         <div className="flex flex-col gap-3">
-          {trips.map((trip) => (
-            <Link key={trip.tripId} href={`/trips/${trip.tripId}`}>
-              <Card className="transition-colors hover:bg-muted/50">
-                <CardHeader>
-                  <CardTitle>
-                    {trip.cities.map((c) => c.cityName).join(" → ")}
-                  </CardTitle>
-                  <CardDescription>
-                    <div className="mt-1 flex flex-col gap-2">
-                      <span className="text-foreground">
-                        {tripRange(trip.cities)}
-                      </span>
-                      <div className="flex flex-wrap gap-1.5">
-                        {trip.cities.map((c, i) => (
-                          <span
-                            key={`${c.cityName}-${i}`}
-                            className="rounded-full bg-muted px-2.5 py-1 text-xs"
-                          >
-                            {c.cityName} {formatDate(c.startDate)}~
-                            {formatDate(c.endDate)}
-                          </span>
-                        ))}
+          {trips.map((trip) => {
+            const color = colorForTrip(trip.tripId);
+            const opacity = opacityForStartDate(earliestStart(trip.cities));
+            return (
+              <Link key={trip.tripId} href={`/trips/${trip.tripId}`}>
+                <Card
+                  className="transition-colors hover:bg-muted/50"
+                  style={{
+                    borderLeft: `4px solid ${color}`,
+                    opacity: Math.max(opacity, 0.55),
+                  }}
+                >
+                  <CardHeader>
+                    <CardTitle>
+                      {trip.cities.map((c) => c.cityName).join(" → ")}
+                    </CardTitle>
+                    <CardDescription>
+                      <div className="mt-1 flex flex-col gap-2">
+                        <span className="text-foreground">
+                          {tripRange(trip.cities)}
+                        </span>
+                        <div className="flex flex-wrap gap-1.5">
+                          {trip.cities.map((c, i) => (
+                            <span
+                              key={`${c.cityName}-${i}`}
+                              className="rounded-full bg-muted px-2.5 py-1 text-xs"
+                            >
+                              {c.cityName} {formatDate(c.startDate)}~
+                              {formatDate(c.endDate)}
+                            </span>
+                          ))}
+                        </div>
+                        <span className="text-xs">
+                          {new Date(trip.createdAt).toLocaleDateString(
+                            "ko-KR"
+                          )}
+                          에 만든 여행
+                        </span>
                       </div>
-                      <span className="text-xs">
-                        {new Date(trip.createdAt).toLocaleDateString("ko-KR")}
-                        에 만든 여행
-                      </span>
-                    </div>
-                  </CardDescription>
-                </CardHeader>
-              </Card>
-            </Link>
-          ))}
+                    </CardDescription>
+                  </CardHeader>
+                </Card>
+              </Link>
+            );
+          })}
         </div>
       )}
     </div>
