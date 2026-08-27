@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { listMyTrips, type TripSummaryCity } from "@/lib/trips";
 import { buttonVariants } from "@/components/ui/button";
+import { TripsMapLoader } from "@/app/trips/trips-map-loader";
 import {
   Card,
   CardHeader,
@@ -38,6 +39,16 @@ export default async function TripsPage() {
           새 여행 만들기
         </Link>
       </div>
+
+      {trips.length > 0 && (
+        <div className="flex flex-col gap-2">
+          <TripsMapLoader trips={trips} />
+          <p className="text-xs text-muted-foreground">
+            같은 도시는 같은 색으로, 오래된 여행일수록 옅은 색으로
+            표시됩니다. 아직 오지 않은(예정) 여행은 점선으로 표시됩니다.
+          </p>
+        </div>
+      )}
 
       {trips.length === 0 ? (
         <Card>

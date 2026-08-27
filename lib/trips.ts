@@ -4,6 +4,8 @@ export type TripSummaryCity = {
   cityName: string;
   startDate: string;
   endDate: string;
+  latitude: number | null;
+  longitude: number | null;
 };
 
 export type TripSummary = {
@@ -20,7 +22,13 @@ export async function listMyTrips(): Promise<TripSummary[]> {
     (row: {
       trip_id: string;
       created_at: string;
-      cities: { city_name: string; start_date: string; end_date: string }[];
+      cities: {
+        city_name: string;
+        start_date: string;
+        end_date: string;
+        latitude: number | null;
+        longitude: number | null;
+      }[];
     }) => ({
       tripId: row.trip_id,
       createdAt: row.created_at,
@@ -28,6 +36,8 @@ export async function listMyTrips(): Promise<TripSummary[]> {
         cityName: c.city_name,
         startDate: c.start_date,
         endDate: c.end_date,
+        latitude: c.latitude,
+        longitude: c.longitude,
       })),
     })
   );
