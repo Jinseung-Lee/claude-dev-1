@@ -9,6 +9,10 @@ export type NewTripCity = {
   cityName: string;
   startDate: string;
   endDate: string;
+  // 지도에서 마커를 클릭해 확정한 경우에만 채워진다. 텍스트로만 입력한
+  // 경우는 null로 두고, 아래에서 서버가 다시 지오코딩한다.
+  latitude: number | null;
+  longitude: number | null;
 };
 
 export type CreateTripResult = { error?: string };
@@ -37,13 +41,19 @@ export async function createTripAction(
 
   const resolved: CityInput[] = [];
   for (const c of cities) {
-    const coords = await geocodeCity(c.cityName);
+    let latitude = c.latitude;
+    let longitude = c.longitude;
+    if (latitude == null || longitude == null) {
+      const coords = await geocodeCity(c.cityName);
+      latitude = coords?.latitude ?? null;
+      longitude = coords?.longitude ?? null;
+    }
     resolved.push({
       cityName: c.cityName.trim(),
       startDate: c.startDate,
       endDate: c.endDate,
-      latitude: coords?.latitude ?? null,
-      longitude: coords?.longitude ?? null,
+      latitude,
+      longitude,
     });
   }
 

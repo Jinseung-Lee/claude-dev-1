@@ -11,19 +11,47 @@ export type Coordinates = {
 export async function geocodeCity(
   cityName: string
 ): Promise<Coordinates | null> {
+  const results = await searchCities(cityName, 1);
+  return results[0] ?? null;
+}
+
+export type CitySearchResult = Coordinates & {
+  name: string;
+  country: string | null;
+};
+
+// 검색어 하나로 후보 도시를 여러 개(동명 도시 등) 가져온다. 서버와
+// 브라우저 양쪽에서 호출할 수 있다(Open-Meteo geocoding API는 CORS를
+// 허용해 클라이언트에서 직접 불러도 된다).
+export async function searchCities(
+  query: string,
+  count = 5
+): Promise<CitySearchResult[]> {
+  if (!query.trim()) return [];
   const url = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(
-    cityName
-  )}&count=1&language=ko&format=json`;
+    query
+  )}&count=${count}&language=ko&format=json`;
 
   try {
     const res = await fetch(url, { cache: "no-store" });
-    if (!res.ok) return null;
+    if (!res.ok) return [];
     const data = await res.json();
-    const first = data?.results?.[0];
-    if (!first) return null;
-    return { latitude: first.latitude, longitude: first.longitude };
+    const results = data?.results ?? [];
+    return results.map(
+      (r: {
+        name: string;
+        latitude: number;
+        longitude: number;
+        country?: string;
+      }) => ({
+        name: r.name,
+        latitude: r.latitude,
+        longitude: r.longitude,
+        country: r.country ?? null,
+      })
+    );
   } catch {
-    return null;
+    return [];
   }
 }
 
