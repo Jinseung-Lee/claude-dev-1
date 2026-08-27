@@ -4,26 +4,18 @@ import { getCurrentUser } from "@/lib/auth";
 import { getTrip } from "@/lib/trips";
 import {
   fetchDailyWeather,
-  describeWeatherCode,
   enumerateDates,
   type DayWeather,
 } from "@/lib/weather";
-import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { buttonVariants } from "@/components/ui/button";
 import { TripTimeline } from "@/app/trips/[id]/trip-timeline";
 
 type CityDay = {
   cityName: string;
+  latitude: number | null;
+  longitude: number | null;
   weather: DayWeather;
 };
-
-function formatDate(date: string): string {
-  return new Date(`${date}T00:00:00`).toLocaleDateString("ko-KR", {
-    month: "long",
-    day: "numeric",
-    weekday: "short",
-  });
-}
 
 export default async function TripDetailPage(
   props: PageProps<"/trips/[id]">
@@ -80,7 +72,14 @@ export default async function TripDetailPage(
       for (const { city, byDate } of weatherByCity) {
         if (date >= city.startDate && date <= city.endDate) {
           const weather = byDate.get(date);
-          if (weather) cityDays.push({ cityName: city.cityName, weather });
+          if (weather) {
+            cityDays.push({
+              cityName: city.cityName,
+              latitude: city.latitude,
+              longitude: city.longitude,
+              weather,
+            });
+          }
         }
       }
       return { date, cityDays };
@@ -99,44 +98,6 @@ export default async function TripDetailPage(
       </div>
 
       <TripTimeline dateGroups={dateGroups} />
-
-      <div className="flex flex-col gap-3">
-        {dateGroups.map(({ date, cityDays }) => (
-          <Card key={date}>
-            <CardHeader>
-              <CardTitle>{formatDate(date)}</CardTitle>
-              <CardDescription>
-                {cityDays.length === 0 ? (
-                  "일정 정보 없음"
-                ) : (
-                  <div className="mt-2 flex flex-col gap-2">
-                    {cityDays.map(({ cityName, weather }) => (
-                      <div
-                        key={cityName}
-                        className="flex items-center justify-between rounded-xl bg-muted/50 px-3 py-2"
-                      >
-                        <span className="font-medium text-foreground">
-                          {cityName}
-                        </span>
-                        <span>
-                          {weather.status === "forecast" &&
-                            `${describeWeatherCode(weather.weatherCode)} · ${Math.round(
-                              weather.tempMin
-                            )}° ~ ${Math.round(weather.tempMax)}°`}
-                          {weather.status === "out-of-range" &&
-                            "예보 범위 밖 (가까워지면 표시됩니다)"}
-                          {weather.status === "unavailable" &&
-                            "위치를 찾지 못해 날씨를 불러올 수 없습니다"}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </CardDescription>
-            </CardHeader>
-          </Card>
-        ))}
-      </div>
     </div>
   );
 }

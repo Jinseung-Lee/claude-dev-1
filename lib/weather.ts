@@ -145,6 +145,51 @@ export async function fetchDailyWeather(
   return allDates.map((d) => results.get(d)!);
 }
 
+export type HourWeather = {
+  time: string; // ISO, 예: 2026-08-30T15:00
+  temperature: number;
+  precipitation: number;
+  precipitationProbability: number | null;
+  weatherCode: number;
+};
+
+// 특정 날짜(그 도시의 로컬 기준 하루) 시간대별 예보를 가져온다. 예보
+// 가능 범위 밖이거나 실패하면 null을 준다. 서버와 브라우저 양쪽에서
+// 호출할 수 있다.
+export async function fetchHourlyWeather(
+  coords: Coordinates | null,
+  date: string
+): Promise<HourWeather[] | null> {
+  if (!coords) return null;
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const maxDate = new Date(today);
+  maxDate.setDate(maxDate.getDate() + FORECAST_MAX_DAYS - 1);
+  const target = new Date(`${date}T00:00:00`);
+  if (target < today || target > maxDate) return null;
+
+  const url = `https://api.open-meteo.com/v1/forecast?latitude=${coords.latitude}&longitude=${coords.longitude}&hourly=temperature_2m,precipitation,precipitation_probability,weather_code&timezone=auto&start_date=${date}&end_date=${date}`;
+
+  try {
+    const res = await fetch(url, { cache: "no-store" });
+    if (!res.ok) return null;
+    const data = await res.json();
+    const times: string[] = data?.hourly?.time ?? [];
+    if (times.length === 0) return null;
+    return times.map((time, i) => ({
+      time,
+      temperature: data.hourly.temperature_2m[i],
+      precipitation: data.hourly.precipitation[i],
+      precipitationProbability:
+        data.hourly.precipitation_probability?.[i] ?? null,
+      weatherCode: data.hourly.weather_code[i],
+    }));
+  } catch {
+    return null;
+  }
+}
+
 // WMO 날씨 코드를 짧은 한글 설명으로 바꾼다.
 export function describeWeatherCode(code: number): string {
   if (code === 0) return "맑음";
