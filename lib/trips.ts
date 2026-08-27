@@ -6,19 +6,9 @@ export type TripSummary = {
   cityNames: string[];
 };
 
-export async function registerTraveler(email: string): Promise<void> {
+export async function listMyTrips(): Promise<TripSummary[]> {
   const supabase = await createClient();
-  const { error } = await supabase.rpc("get_or_create_traveler", {
-    p_email: email,
-  });
-  if (error) throw new Error(error.message);
-}
-
-export async function listMyTrips(email: string): Promise<TripSummary[]> {
-  const supabase = await createClient();
-  const { data, error } = await supabase.rpc("list_my_trips", {
-    p_email: email,
-  });
+  const { data, error } = await supabase.rpc("list_my_trips");
   if (error) throw new Error(error.message);
   return (data ?? []).map(
     (row: {
@@ -41,10 +31,7 @@ export type CityInput = {
   longitude: number | null;
 };
 
-export async function createTrip(
-  email: string,
-  cities: CityInput[]
-): Promise<string> {
+export async function createTrip(cities: CityInput[]): Promise<string> {
   const supabase = await createClient();
   const payload = cities.map((c) => ({
     city_name: c.cityName,
@@ -54,7 +41,6 @@ export async function createTrip(
     longitude: c.longitude,
   }));
   const { data, error } = await supabase.rpc("create_trip", {
-    p_email: email,
     p_cities: payload,
   });
   if (error) throw new Error(error.message);
@@ -70,14 +56,10 @@ export type TripCityDetail = {
   orderIndex: number;
 };
 
-export async function getTrip(
-  tripId: string,
-  email: string
-): Promise<TripCityDetail[]> {
+export async function getTrip(tripId: string): Promise<TripCityDetail[]> {
   const supabase = await createClient();
   const { data, error } = await supabase.rpc("get_trip", {
     p_trip_id: tripId,
-    p_email: email,
   });
   if (error) throw new Error(error.message);
   return (data ?? []).map(

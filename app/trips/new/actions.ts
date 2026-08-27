@@ -1,7 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
-import { getSessionEmail } from "@/lib/session";
+import { getCurrentUser } from "@/lib/auth";
 import { createTrip, type CityInput } from "@/lib/trips";
 import { geocodeCity } from "@/lib/weather";
 
@@ -16,8 +16,8 @@ export type CreateTripResult = { error?: string };
 export async function createTripAction(
   cities: NewTripCity[]
 ): Promise<CreateTripResult> {
-  const email = await getSessionEmail();
-  if (!email) {
+  const user = await getCurrentUser();
+  if (!user) {
     return { error: "로그인이 필요합니다." };
   }
 
@@ -49,7 +49,7 @@ export async function createTripAction(
 
   let tripId: string;
   try {
-    tripId = await createTrip(email, resolved);
+    tripId = await createTrip(resolved);
   } catch {
     return { error: "여행을 저장하는 중 문제가 발생했습니다." };
   }

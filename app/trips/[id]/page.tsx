@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { getSessionEmail } from "@/lib/session";
+import { getCurrentUser } from "@/lib/auth";
 import { getTrip } from "@/lib/trips";
 import {
   fetchDailyWeather,
@@ -28,11 +28,11 @@ function formatDate(date: string): string {
 export default async function TripDetailPage(
   props: PageProps<"/trips/[id]">
 ) {
-  const email = await getSessionEmail();
-  if (!email) redirect("/");
+  const user = await getCurrentUser();
+  if (!user) redirect("/");
 
   const { id } = await props.params;
-  const cities = await getTrip(id, email);
+  const cities = await getTrip(id);
 
   if (cities.length === 0) {
     return (

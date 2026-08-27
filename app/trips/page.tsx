@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { getSessionEmail } from "@/lib/session";
 import { listMyTrips } from "@/lib/trips";
 import { buttonVariants } from "@/components/ui/button";
 import {
@@ -10,8 +9,7 @@ import {
 } from "@/components/ui/card";
 
 export default async function TripsPage() {
-  const email = (await getSessionEmail())!;
-  const trips = await listMyTrips(email);
+  const trips = await listMyTrips();
 
   return (
     <div className="flex w-full max-w-2xl flex-col gap-6 self-center">
