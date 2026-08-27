@@ -1,9 +1,15 @@
 import { createClient } from "@/lib/server";
 
+export type TripSummaryCity = {
+  cityName: string;
+  startDate: string;
+  endDate: string;
+};
+
 export type TripSummary = {
   tripId: string;
   createdAt: string;
-  cityNames: string[];
+  cities: TripSummaryCity[];
 };
 
 export async function listMyTrips(): Promise<TripSummary[]> {
@@ -14,11 +20,15 @@ export async function listMyTrips(): Promise<TripSummary[]> {
     (row: {
       trip_id: string;
       created_at: string;
-      city_names: string[];
+      cities: { city_name: string; start_date: string; end_date: string }[];
     }) => ({
       tripId: row.trip_id,
       createdAt: row.created_at,
-      cityNames: row.city_names,
+      cities: row.cities.map((c) => ({
+        cityName: c.city_name,
+        startDate: c.start_date,
+        endDate: c.end_date,
+      })),
     })
   );
 }

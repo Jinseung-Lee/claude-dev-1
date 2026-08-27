@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { listMyTrips } from "@/lib/trips";
+import { listMyTrips, type TripSummaryCity } from "@/lib/trips";
 import { buttonVariants } from "@/components/ui/button";
 import {
   Card,
@@ -7,6 +7,25 @@ import {
   CardTitle,
   CardDescription,
 } from "@/components/ui/card";
+
+function formatDate(date: string): string {
+  return new Date(`${date}T00:00:00`).toLocaleDateString("ko-KR", {
+    month: "long",
+    day: "numeric",
+  });
+}
+
+function tripRange(cities: TripSummaryCity[]): string {
+  const start = cities.reduce(
+    (min, c) => (c.startDate < min ? c.startDate : min),
+    cities[0].startDate
+  );
+  const end = cities.reduce(
+    (max, c) => (c.endDate > max ? c.endDate : max),
+    cities[0].endDate
+  );
+  return `${formatDate(start)} ~ ${formatDate(end)}`;
+}
 
 export default async function TripsPage() {
   const trips = await listMyTrips();
@@ -36,10 +55,30 @@ export default async function TripsPage() {
             <Link key={trip.tripId} href={`/trips/${trip.tripId}`}>
               <Card className="transition-colors hover:bg-muted/50">
                 <CardHeader>
-                  <CardTitle>{trip.cityNames.join(" → ")}</CardTitle>
+                  <CardTitle>
+                    {trip.cities.map((c) => c.cityName).join(" → ")}
+                  </CardTitle>
                   <CardDescription>
-                    {new Date(trip.createdAt).toLocaleDateString("ko-KR")}에
-                    만든 여행
+                    <div className="mt-1 flex flex-col gap-2">
+                      <span className="text-foreground">
+                        {tripRange(trip.cities)}
+                      </span>
+                      <div className="flex flex-wrap gap-1.5">
+                        {trip.cities.map((c, i) => (
+                          <span
+                            key={`${c.cityName}-${i}`}
+                            className="rounded-full bg-muted px-2.5 py-1 text-xs"
+                          >
+                            {c.cityName} {formatDate(c.startDate)}~
+                            {formatDate(c.endDate)}
+                          </span>
+                        ))}
+                      </div>
+                      <span className="text-xs">
+                        {new Date(trip.createdAt).toLocaleDateString("ko-KR")}
+                        에 만든 여행
+                      </span>
+                    </div>
                   </CardDescription>
                 </CardHeader>
               </Card>
